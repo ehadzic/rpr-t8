@@ -4,81 +4,70 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.fxml.Initializable;
+import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-
 import java.io.File;
-import java.net.URL;
 
-import java.util.ResourceBundle;
+public class Controller {
 
-public class Controller implements Initializable {
-    public TextField tekst;
-    public Button dugme;
-    public Button dugmeZaKraj;
+    public Label labela;
     public ListView lista;
-    public File root = new File("D:\\");
-    public ObservableList<String> spisak= FXCollections.observableArrayList();
+    public Button dugmeTrazi;
+    public TextField tekst;
+    private File korijenskiDirektorij;
+    private ObservableList<String> observabilnaLista;
+    public Button dugmePrekini;
 
-
-    public void akcija(ActionEvent actionEvent) {
-        dugme.setDisable(true);
-        dugmeZaKraj.setDisable(false);
-        spisak.remove(0,spisak.size());
-        Pretraga p=new Pretraga();
-        Thread t=new Thread(p);
-        t.start();
+    public Controller() {
+        korijenskiDirektorij = new File(System.getProperty("user.home"));
+        observabilnaLista = FXCollections.observableArrayList();
     }
 
-    public void prekid(ActionEvent actionEvent) {
-        dugmeZaKraj.setDisable(true);
-        dugme.setDisable(false);
+    @FXML
+    public void initialize() {
+        lista.setItems(observabilnaLista);
+        dugmePrekini.setDisable(true);
+        dugmeTrazi.setDisable(false);
     }
 
-    public class Pretraga implements Runnable{
-
-        @Override
-        public void run() {
-            trazi(tekst.getText(),root.getAbsolutePath());
-        }
-
-    }
-
-    public void trazi(String dio_imena, String parent){
-        File f=new File(parent);
-        if(dugmeZaKraj.isDisabled()){
-            Thread.currentThread().stop();
-        }
-        File[] djeca=f.listFiles();
-        if(djeca!=null){
-            for (File d:djeca) {
-                if(d.isDirectory()){
-                    trazi(dio_imena,d.getAbsolutePath());
-                }
-                else{
-                    if(d.getName().contains(dio_imena)) {
-                        Platform.runLater(
-                                ()->{spisak.add(d.getAbsolutePath());
-                                }
-                        );
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
+    private void pretraga(String put, String uzorak) {
+        if (dugmePrekini.isDisabled()) Thread.currentThread().stop();
+        File file = new File(put);
+        if (file.isFile()) {
+            if (file.getName().contains(uzorak)) {
+                try {
+                    Platform.runLater(() -> observabilnaLista.add(file.getAbsolutePath()));
+                    Thread.sleep(180);
+                } catch (Exception exception) {
                 }
             }
-            if(f.getAbsolutePath().equals(root.getAbsolutePath())){
-                dugme.setDisable(false);
-                dugmeZaKraj.setDisable(true);
+        }
+        else if (file.isDirectory()) {
+            try {
+                for (File file1 : file.listFiles()) {
+                    pretraga(file1.getAbsolutePath(), uzorak);
+                }
+            } catch (Exception exception) {
             }
         }
+        if (file.getAbsolutePath().equals(korijenskiDirektorij.getAbsolutePath())) {
+            dugmePrekini.setDisable(true);
+            dugmeTrazi.setDisable(false);
+        }
     }
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        lista.setItems(spisak);
+
+    public void pretragaF(ActionEvent actionEvent) {
+        observabilnaLista.clear();
+        dugmePrekini.setDisable(false);
+        dugmeTrazi.setDisable(true);
+        new Thread(() -> pretraga(korijenskiDirektorij.getAbsolutePath(), tekst.getText())).start();
+    }
+
+    public void prekiniF(ActionEvent actionEvent) {
+        dugmePrekini.setDisable(true);
+        dugmeTrazi.setDisable(false);
     }
 }
